@@ -37,7 +37,7 @@ def parse_args():
     p.add_argument('--layer', '-l',
                    action='append',
                    help='Extract only the specified layer')
-    p.add_argument('image')
+    p.add_argument('image', nargs='?')
 
     p.set_defaults(level=logging.WARN)
     return p.parse_args()
@@ -63,17 +63,24 @@ def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
 
-    try:
-        name, tag = args.image.split(':', 1)
-    except ValueError:
-        name, tag = args.image, 'latest'
-
     with tempfile.NamedTemporaryFile() as fd:
         fd.write(sys.stdin.read())
         fd.seek(0)
         with tarfile.TarFile(fileobj=fd) as img:
             repos = img.extractfile('repositories')
             repos = json.load(repos)
+
+            if not args.image:
+                if len(repos) == 1:
+                    args.image = repos.keys()[0]
+                else:
+                    LOG.error('No image name specified and multiple '
+                              'images contained in archive')
+                    sys.exit(1)
+            try:
+                name, tag = args.image.split(':', 1)
+            except ValueError:
+                name, tag = args.image, 'latest'
 
             try:
                 top = repos[name][tag]
