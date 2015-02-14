@@ -31,9 +31,12 @@ def parse_args():
                    action='store_const',
                    const=logging.DEBUG,
                    dest='loglevel')
-    p.add_argument('--list', '--ls',
+    p.add_argument('--layers',
                    action='store_true',
                    help='List layers in an image')
+    p.add_argument('--list', '--ls',
+                   action='store_true',
+                   help='List images/tags contained in archive')
     p.add_argument('--layer', '-l',
                    action='append',
                    help='Extract only the specified layer')
@@ -48,7 +51,7 @@ def find_layers(img, id):
         info = json.load(fd)
 
     LOG.debug('layer = %s', id)
-    for k in ['os', 'architecture', 'author']:
+    for k in ['os', 'architecture', 'author', 'created']:
         if k in info:
             LOG.debug('%s = %s', k, info[k])
 
@@ -69,6 +72,13 @@ def main():
         with tarfile.TarFile(fileobj=fd) as img:
             repos = img.extractfile('repositories')
             repos = json.load(repos)
+
+            if args.list:
+                for name, tags in repos.items():
+                    print '%s: %s' % (
+                        name,
+                        ' '.join(tags))
+                sys.exit(0)
 
             if not args.image:
                 if len(repos) == 1:
@@ -93,7 +103,7 @@ def main():
             LOG.info('extracting image %s (%s)', name, top)
             layers = list(find_layers(img, top))
 
-            if args.list:
+            if args.layers:
                 print '\n'.join(reversed(layers))
                 sys.exit(0)
 
