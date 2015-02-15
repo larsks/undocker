@@ -116,16 +116,9 @@ def main():
 
                 LOG.info('extracting layer %s', id)
                 with tarfile.TarFile(
-                        fileobj=img.extractfile('%s/layer.tar' % id)) as layer:
-                    try:
-                        layer.extractall(path=args.output)
-                    except OSError as exc:
-                        if args.ignore_errors:
-                            LOG.info('ignoring error: %s',
-                                     exc)
-                            continue
-
-                        raise
+                        fileobj=img.extractfile('%s/layer.tar' % id),
+                        errorlevel=(0 if args.ignore_errors else 1)) as layer:
+                    layer.extractall(path=args.output)
 
 
 if __name__ == '__main__':
