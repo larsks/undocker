@@ -67,7 +67,11 @@ def main():
     logging.basicConfig(level=args.loglevel)
 
     with tempfile.NamedTemporaryFile() as fd:
-        fd.write(sys.stdin.read())
+        while True:
+            data = sys.stdin.read(8192)
+            if not data:
+                break
+            fd.write(data)
         fd.seek(0)
         with tarfile.TarFile(fileobj=fd) as img:
             repos = img.extractfile('repositories')
