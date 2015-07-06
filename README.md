@@ -47,3 +47,21 @@ Extract only specific layers:
     INFO:undocker:extracting image busybox (4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125)
     INFO:undocker:extracting layer 4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
 
+## License
+
+undocker -- a tool for decomposing Docker images  
+Copyright (C) 2015 Lars Kellogg-Stedman <lars@oddbit.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
