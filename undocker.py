@@ -40,6 +40,9 @@ def parse_args():
     p.add_argument('--layer', '-l',
                    action='append',
                    help='Extract only the specified layer')
+    p.add_argument('--no-whiteouts', '-W',
+                   action='store_true',
+                   help='Do not process whiteout (.wh.*) files')
     p.add_argument('image', nargs='?')
 
     p.set_defaults(level=logging.WARN)
@@ -123,6 +126,19 @@ def main():
                         fileobj=img.extractfile('%s/layer.tar' % id),
                         errorlevel=(0 if args.ignore_errors else 1)) as layer:
                     layer.extractall(path=args.output)
+                    if not args.no_whiteouts:
+                        LOG.info('processing whiteouts')
+                        for member in layer.getmembers():
+                            path = member.path
+                            if path.startswith('.wh.') or '/.wh.' in path:
+                                if path.startswith('.wh.'):
+                                    newpath = path[4:]
+                                else:
+                                    newpath = path.replace('/.wh.', '/')
+
+                                LOG.info('removing path %s', newpath)
+                                os.unlink(path)
+                                os.unlink(newpath)
 
 
 if __name__ == '__main__':
