@@ -1,12 +1,15 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-with open('requirements.txt') as fd:
-    setup(name='undocker',
-          version='4',
-          py_modules=['undocker'],
-          entry_points={
-              'console_scripts': [
-                  'undocker = undocker:main',
-              ],
-          }
-          )
+setup(name='undocker',
+        author = 'Lars Kellogg-Stedman',
+        author_email = 'lars@oddbit.com',
+        version='5',
+        description='Unpack docker images',
+        url='http://github.com/larsks/undocker',
+        py_modules=['undocker'],
+        entry_points={
+            'console_scripts': [
+                'undocker = undocker:main',
+                ],
+            }
+        )
