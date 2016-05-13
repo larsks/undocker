@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import errno
 import json
 import logging
 import os
@@ -118,7 +119,7 @@ def main():
                 os.mkdir(args.output)
 
             for id in reversed(layers):
-                if args.layer and not id in args.layer:
+                if args.layer and id not in args.layer:
                     continue
 
                 LOG.info('extracting layer %s', id)
@@ -136,9 +137,13 @@ def main():
                                 else:
                                     newpath = path.replace('/.wh.', '/')
 
-                                LOG.info('removing path %s', newpath)
-                                os.unlink(path)
-                                os.unlink(newpath)
+                                try:
+                                    LOG.info('removing path %s', newpath)
+                                    os.unlink(path)
+                                    os.unlink(newpath)
+                                except OSError as err:
+                                    if err.errno != errno.ENOENT:
+                                        raise
 
 
 if __name__ == '__main__':
