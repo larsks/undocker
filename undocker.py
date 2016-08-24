@@ -72,6 +72,19 @@ def find_layers(img, id):
             yield layer
 
 
+def parse_image_spec(image):
+    try:
+        path, base = image.rsplit('/', 1)
+    except ValueError:
+        path, base = None, image
+    try:
+        name, tag = base.rsplit(':', 1)
+    except ValueError:
+        name, tag = base, 'latest'
+    name = path + '/' + name if path else name
+    return name, tag
+
+
 def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
@@ -96,17 +109,15 @@ def main():
                         ' '.join(tags)))
                 sys.exit(0)
 
-            if not args.image:
-                if len(repos) == 1:
-                    args.image = list(repos)[0]
-                else:
-                    LOG.error('No image name specified and multiple '
-                              'images contained in archive')
-                    sys.exit(1)
-            try:
-                name, tag = args.image.split(':', 1)
-            except ValueError:
-                name, tag = args.image, 'latest'
+            if args.image:
+                name, tag = parse_image_spec(args.image)
+            elif len(repos) == 1:
+                name = list(repos.keys())[0]
+                tag = list(repos[name].keys())[0]
+            else:
+                LOG.error('No image name specified and multiple '
+                          'images contained in archive')
+                sys.exit(1)
 
             try:
                 top = repos[name][tag]
