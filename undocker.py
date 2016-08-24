@@ -88,17 +88,18 @@ def main():
                         ' '.join(tags))
                 sys.exit(0)
 
-            if not args.image:
-                if len(repos) == 1:
-                    args.image = repos.keys()[0]
-                else:
-                    LOG.error('No image name specified and multiple '
-                              'images contained in archive')
-                    sys.exit(1)
-            try:
-                name, tag = args.image.split(':', 1)
-            except ValueError:
-                name, tag = args.image, 'latest'
+            if args.image:
+                try:
+                    name, tag = args.image.rsplit(':', 1)
+                except ValueError:
+                    name, tag = args.image, 'latest'
+            elif len(repos) == 1:
+                name = repos.keys()[0]
+                tag = repos[name].keys()[0]
+            else:
+                LOG.error('No image name specified and multiple '
+                          'images contained in archive')
+                sys.exit(1)
 
             try:
                 top = repos[name][tag]
