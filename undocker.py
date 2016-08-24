@@ -66,6 +66,19 @@ def find_layers(img, id):
             yield layer
 
 
+def parse_image_spec(image):
+    try:
+        path, base = image.rsplit('/', 1)
+    except ValueError:
+        path, base = None, image
+    try:
+        name, tag = base.rsplit(':', 1)
+    except ValueError:
+        name, tag = base, 'latest'
+    name = path + '/' + name if path else name
+    return name, tag
+
+
 def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
@@ -89,10 +102,7 @@ def main():
                 sys.exit(0)
 
             if args.image:
-                try:
-                    name, tag = args.image.rsplit(':', 1)
-                except ValueError:
-                    name, tag = args.image, 'latest'
+                name, tag = parse_image_spec(args.image)
             elif len(repos) == 1:
                 name = repos.keys()[0]
                 tag = repos[name].keys()[0]
