@@ -55,6 +55,7 @@ def find_layers(img, id):
         info = json.load(fd)
 
     LOG.debug('layer = %s', id)
+
     for k in ['os', 'architecture', 'author', 'created']:
         if k in info:
             LOG.debug('%s = %s', k, info[k])
@@ -77,39 +78,43 @@ def main():
                 break
             fd.write(data)
         fd.seek(0)
+
         with tarfile.TarFile(fileobj=fd) as img:
-            repos = img.extractfile('repositories')
-            repos = json.load(repos)
+            manifest_json_file = img.extractfile('manifest.json')
+            manifest_json = json.load(manifest_json_file)
 
-            if args.list:
-                for name, tags in repos.items():
-                    print '%s: %s' % (
-                        name,
-                        ' '.join(tags))
-                sys.exit(0)
+            # if args.list:
+            #     for name, tags in repos.items():
+            #         print '%s: %s' % (
+            #             name,
+            #             ' '.join(tags))
+            #     sys.exit(0)
 
-            if not args.image:
-                if len(repos) == 1:
-                    args.image = repos.keys()[0]
-                else:
-                    LOG.error('No image name specified and multiple '
-                              'images contained in archive')
-                    sys.exit(1)
-            try:
-                name, tag = args.image.split(':', 1)
-            except ValueError:
-                name, tag = args.image, 'latest'
+            # if not args.image:
+            #     if len(repos) == 1:
+            #         args.image = repos.keys()[0]
+            #     else:
+            #         LOG.error('No image name specified and multiple '
+            #                   'images contained in archive')
+            #         sys.exit(1)
+            # try:
+            #     name, tag = args.image.split(':', 1)
+            # except ValueError:
+            #     name, tag = args.image, 'latest'
 
-            try:
-                top = repos[name][tag]
-            except KeyError:
-                LOG.error('failed to find image %s with tag %s',
-                          name,
-                          tag)
-                sys.exit(1)
+            # try:
+            #     top = repos[name][tag]
+            # except KeyError:
+            #     LOG.error('failed to find image %s with tag %s',
+            #               name,
+            #               tag)
+            #     sys.exit(1)
 
-            LOG.info('extracting image %s (%s)', name, top)
-            layers = list(find_layers(img, top))
+            # print('extracting image %s (%s)', name, top)
+
+            layers = manifest_json[0]['Layers']
+
+            # layers = list(find_layers(img, top))
 
             if args.layers:
                 print '\n'.join(reversed(layers))
@@ -118,19 +123,24 @@ def main():
             if not os.path.isdir(args.output):
                 os.mkdir(args.output)
 
-            for id in reversed(layers):
-                if args.layer and id not in args.layer:
-                    continue
+            for layer_file in reversed(layers):
+                # if args.layer and id not in args.layer:
+                #     continue
 
-                LOG.info('extracting layer %s', id)
+                print('extracting layer %s' % layer_file)
+
                 with tarfile.TarFile(
-                        fileobj=img.extractfile('%s/layer.tar' % id),
-                        errorlevel=(0 if args.ignore_errors else 1)) as layer:
+                    fileobj=img.extractfile(layer_file),
+                    errorlevel=(0 if args.ignore_errors else 1)
+                ) as layer:
                     layer.extractall(path=args.output)
+
                     if not args.no_whiteouts:
-                        LOG.info('processing whiteouts')
+                        print('processing whiteouts')
+
                         for member in layer.getmembers():
                             path = member.path
+
                             if path.startswith('.wh.') or '/.wh.' in path:
                                 if path.startswith('.wh.'):
                                     newpath = path[4:]
@@ -138,13 +148,13 @@ def main():
                                     newpath = path.replace('/.wh.', '/')
 
                                 try:
-                                    LOG.info('removing path %s', newpath)
+                                    print('removing path %s' % newpath)
                                     os.unlink(path)
                                     os.unlink(newpath)
+
                                 except OSError as err:
                                     if err.errno != errno.ENOENT:
                                         raise
-
 
 if __name__ == '__main__':
     main()
