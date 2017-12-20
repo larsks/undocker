@@ -1,2 +1,5 @@
 dist/
+build/
 undocker.egg-info/
+
+.idea/

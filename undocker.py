@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import argparse
 import errno
@@ -18,6 +19,8 @@ LOG = logging.getLogger(__name__)
 def parse_args():
     p = argparse.ArgumentParser()
 
+    p.add_argument('--image-file', '-f',
+                   help="Image file to extract")
     p.add_argument('--ignore-errors', '-i',
                    action='store_true',
                    help='Ignore OS errors when extracting files')
@@ -65,32 +68,47 @@ def find_layers(img, id):
         for layer in find_layers(img, pid):
             yield layer
 
+class ImageFileWrapper:
+
+    def __init__(self, image_file_path=None):
+        self._img_file = image_file_path
+
+    def __enter__(self):
+        if self._img_file is None:
+            self.fd, _ = tempfile.mkstemp()
+            while True:
+                data = sys.stdin.read(8192)
+                if not data:
+                    break
+                self.fd.write(data)
+            self.fd.seek(0)
+        else:
+            self.fd = open(self._img_file, "rb")
+
+        return self.fd
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.fd is not None:
+            self.fd.close()
+
 
 def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
 
-    with tempfile.NamedTemporaryFile() as fd:
-        while True:
-            data = sys.stdin.read(8192)
-            if not data:
-                break
-            fd.write(data)
-        fd.seek(0)
+    with ImageFileWrapper(args.image_file) as fd:
         with tarfile.TarFile(fileobj=fd) as img:
             repos = img.extractfile('repositories')
             repos = json.load(repos)
 
             if args.list:
                 for name, tags in repos.items():
-                    print '%s: %s' % (
-                        name,
-                        ' '.join(tags))
+                    print('%s: %s'.format(name, ' '.join(tags)))
                 sys.exit(0)
 
             if not args.image:
                 if len(repos) == 1:
-                    args.image = repos.keys()[0]
+                    args.image = list(repos)[0]
                 else:
                     LOG.error('No image name specified and multiple '
                               'images contained in archive')
@@ -98,7 +116,7 @@ def main():
             try:
                 name, tag = args.image.split(':', 1)
             except ValueError:
-                name, tag = args.image, 'latest'
+                name, tag = args.image, list(repos[args.image])[0]
 
             try:
                 top = repos[name][tag]
@@ -112,7 +130,7 @@ def main():
             layers = list(find_layers(img, top))
 
             if args.layers:
-                print '\n'.join(reversed(layers))
+                print ('\n'.join(reversed(layers)))
                 sys.exit(0)
 
             if not os.path.isdir(args.output):
