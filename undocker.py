@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import argparse
 import errno
+import io
 import json
 import logging
 import os
@@ -52,7 +55,7 @@ def parse_args():
 
 def find_layers(img, id):
     with closing(img.extractfile('%s/json' % id)) as fd:
-        info = json.load(fd)
+        info = json.load(io.TextIOWrapper(fd, encoding='utf-8'))
 
     LOG.debug('layer = %s', id)
     for k in ['os', 'architecture', 'author', 'created']:
@@ -70,27 +73,29 @@ def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
 
+    stdin = io.open(sys.stdin.fileno(), 'rb')
+
     with tempfile.NamedTemporaryFile() as fd:
         while True:
-            data = sys.stdin.read(8192)
+            data = stdin.read(8192)
             if not data:
                 break
             fd.write(data)
         fd.seek(0)
         with tarfile.TarFile(fileobj=fd) as img:
             repos = img.extractfile('repositories')
-            repos = json.load(repos)
+            repos = json.loads(repos.read().decode('utf-8'))
 
             if args.list:
                 for name, tags in repos.items():
-                    print '%s: %s' % (
+                    print('%s: %s' % (
                         name,
-                        ' '.join(tags))
+                        ' '.join(tags)))
                 sys.exit(0)
 
             if not args.image:
                 if len(repos) == 1:
-                    args.image = repos.keys()[0]
+                    args.image = list(repos)[0]
                 else:
                     LOG.error('No image name specified and multiple '
                               'images contained in archive')
@@ -112,7 +117,7 @@ def main():
             layers = list(find_layers(img, top))
 
             if args.layers:
-                print '\n'.join(reversed(layers))
+                print('\n'.join(reversed(layers)))
                 sys.exit(0)
 
             if not os.path.isdir(args.output):
