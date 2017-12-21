@@ -27,14 +27,6 @@ def parse_args():
     p.add_argument('--output', '-o',
                    default='.',
                    help='Output directory (defaults to ".")')
-    p.add_argument('--verbose', '-v',
-                   action='store_const',
-                   const=logging.INFO,
-                   dest='loglevel')
-    p.add_argument('--debug', '-d',
-                   action='store_const',
-                   const=logging.DEBUG,
-                   dest='loglevel')
     p.add_argument('--layers',
                    action='store_true',
                    help='List layers in an image')
@@ -47,6 +39,17 @@ def parse_args():
     p.add_argument('--no-whiteouts', '-W',
                    action='store_true',
                    help='Do not process whiteout (.wh.*) files')
+
+    g = p.add_argument_group('Logging options')
+    g.add_argument('--verbose', '-v',
+                   action='store_const',
+                   const=logging.INFO,
+                   dest='loglevel')
+    g.add_argument('--debug', '-d',
+                   action='store_const',
+                   const=logging.DEBUG,
+                   dest='loglevel')
+
     p.add_argument('image', nargs='?')
 
     p.set_defaults(level=logging.WARN)
