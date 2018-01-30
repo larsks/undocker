@@ -58,6 +58,11 @@ def parse_args():
 
 def find_layers(img, id):
     with closing(img.extractfile('%s/json' % id)) as fd:
+        # This is an ugly hack for Python 2.
+        if not hasattr(fd, 'readable'):
+            fd.readable = lambda: True
+            fd.seekable = lambda: True
+            fd.writable = lambda: False
         info = json.load(io.TextIOWrapper(fd, encoding='utf-8'))
 
     LOG.debug('layer = %s', id)
