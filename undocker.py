@@ -95,11 +95,11 @@ def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
 
-    stdin = io.open(sys.stdin.fileno(), 'rb')
-
-    with tempfile.NamedTemporaryFile() as fd:
+    with tempfile.NamedTemporaryFile() as fd, (
+            open(args.image, 'rb') if args.image
+            else io.open(sys.stdin.fileno(), 'rb')) as image:
         while True:
-            data = stdin.read(8192)
+            data = image.read(8192)
             if not data:
                 break
             fd.write(data)
