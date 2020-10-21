@@ -2,29 +2,34 @@ Unpacks a Docker image.
 
 ## Usage
 
-    usage: undocker.py [-h] [--ignore-errors] [--output OUTPUT] [--verbose]
-                       [--debug] [--list] [--layer LAYER]
-                       image
+    usage: undocker [-h] [--ignore-errors] [--output OUTPUT] [--layers] [--list]
+                    [--layer LAYER] [--no-whiteouts] [--verbose] [--debug]
+                    [image]
 
     positional arguments:
-      image
+      image                 The docker image tar archive from `docker save`. Read
+                            from stdin if left empty.
 
     optional arguments:
       -h, --help            show this help message and exit
       --ignore-errors, -i   Ignore OS errors when extracting files
       --output OUTPUT, -o OUTPUT
                             Output directory (defaults to ".")
-      --verbose, -v
-      --debug, -d
-      --list, --ls          List layers in an image
+      --layers              List layers in an image
+      --list, --ls          List images/tags contained in archive
       --layer LAYER, -l LAYER
                             Extract only the specified layer
+      --no-whiteouts, -W    Do not process whiteout (.wh.*) files
+
+    Logging options:
+      --verbose, -v
+      --debug, -d
 
 ## Examples
 
 Extract an entire image:
 
-    $ docker save busybox | undocker -i -o busybox busybox
+    $ docker save busybox | undocker -i -o busybox
 
 The `-i` option is necessary here because I am not running as root,
 and the extract operation will fail when it attempts to create device
@@ -42,14 +47,13 @@ Extract only specific layers:
 
     $ docker save busybox |
       undocker -o busybox -v \
-      -l 4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125 \
-      busybox
+      -l 4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
     INFO:undocker:extracting image busybox (4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125)
     INFO:undocker:extracting layer 4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
 
 ## License
 
-undocker -- a tool for decomposing Docker images  
+undocker -- a tool for decomposing Docker images
 Copyright (C) 2015 Lars Kellogg-Stedman <lars@oddbit.com>
 
 This program is free software: you can redistribute it and/or modify
