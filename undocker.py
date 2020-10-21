@@ -51,7 +51,7 @@ def parse_args():
                    const=logging.DEBUG,
                    dest='loglevel')
 
-    p.add_argument('image', nargs='?')
+    p.add_argument('image', nargs='?', help='The docker image tar archive from `docker save`. Read from stdin if left empty.')
 
     p.set_defaults(level=logging.WARN)
     return p.parse_args()
@@ -94,6 +94,9 @@ def parse_image_spec(image):
 def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
+
+    if args.image and not os.path.exists(args.image):
+        raise Exception(f'Expected "{args.image}" to be a docker image tar file.')
 
     with tempfile.NamedTemporaryFile() as fd, (
             open(args.image, 'rb') if args.image
