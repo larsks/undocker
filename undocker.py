@@ -166,7 +166,7 @@ def main():
                                     LOG.info('removing path %s', newpath)
                                     os.unlink(path)
 
-                                    if os.path.isdir(newpath):
+                                    if os.path.isdir(newpath) and not os.path.islink(newpath):
                                         shutil.rmtree(newpath)
                                     else:
                                         os.unlink(newpath)
