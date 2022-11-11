@@ -10,8 +10,13 @@ import logging
 import os
 import shutil
 import sys
+try:
+    from stat import filemode
+except ImportError:
+    def filemode(mode): return "(0o%06o)" % mode
 import tarfile
 import tempfile
+import time
 
 from contextlib import closing
 
@@ -34,6 +39,12 @@ def parse_args():
     p.add_argument('--list', '--ls',
                    action='store_true',
                    help='List images/tags contained in archive')
+    p.add_argument('--du',
+                   action='store_true',
+                   help='Show disk usage of files')
+    p.add_argument('--files',
+                   action='store_true',
+                   help='List all files in an image')
     p.add_argument('--layer', '-l',
                    action='append',
                    help='Extract only the specified layer')
@@ -90,6 +101,40 @@ def parse_image_spec(image):
     name = path + '/' + name if path else name
     return name, tag
 
+def du(members):
+    for tarinfo in members:
+        if tarinfo.isdir() or tarinfo.isdev():
+            continue
+        if tarinfo.issym() or tarinfo.islnk():
+            continue
+        if tarinfo.size < 4096:
+            size = 4
+        else:
+            size = tarinfo.size / 1024
+        print("%d\t%s" % (size, tarinfo.name))
+
+def ls(members, verbose=True):
+    for tarinfo in members:
+        if verbose:
+            print(filemode(tarinfo.mode), end=" ")
+            print("%s/%s" % (tarinfo.uname or tarinfo.uid,
+                             tarinfo.gname or tarinfo.gid), end=" ")
+            if tarinfo.ischr() or tarinfo.isblk():
+                print("%10s" % (
+                      "%d,%d" % (tarinfo.devmajor, tarinfo.devminor)), end=" ")
+            else:
+                print("%10d" % tarinfo.size, end=" ")
+            print("%d-%02d-%02d %02d:%02d:%02d"
+                  % time.localtime(tarinfo.mtime)[:6], end=" ")
+
+        print(tarinfo.name + ("/" if tarinfo.isdir() else ""), end="")
+
+        if verbose:
+            if tarinfo.issym():
+                print(" -> " + tarinfo.linkname, end="")
+            if tarinfo.islnk():
+                print(" link to " + tarinfo.linkname, end="")
+        print()
 
 def main():
     args = parse_args()
@@ -138,6 +183,51 @@ def main():
 
             if args.layers:
                 print('\n'.join(reversed(layers)))
+                sys.exit(0)
+
+            if args.du or args.files:
+                members = {}
+                order = {}
+                o = 0
+                for id in reversed(layers):
+                    if args.layer and id not in args.layer:
+                        continue
+
+                    LOG.info('extracting layer %s', id)
+                    with tarfile.TarFile(
+                            fileobj=img.extractfile('%s/layer.tar' % id),
+                            errorlevel=(0 if args.ignore_errors else 1)) as layer:
+                        if not args.no_whiteouts:
+                            LOG.info('processing whiteouts')
+                            for member in layer.getmembers():
+                                path = member.path
+                                if path.startswith('.wh.') or '/.wh.' in path:
+                                    if path.startswith('.wh.'):
+                                        newpath = path[4:]
+                                    else:
+                                        newpath = path.replace('/.wh.', '/')
+                                    del members[path]
+                                    del members[newpath]
+                                else:
+                                    members[path] = member
+                                    order[path] = o
+                                    o += 1
+                        else:
+                            for member in layer.getmembers():
+                                members[member.path] = member
+                                order[path] = o
+                                o += 1
+                s = []
+                for member in members:
+                    s.append((order[member], members[member]))
+                s.sort()
+                m = []
+                for t in s:
+                    m.append(t[1])
+                if args.du:
+                    du(m)
+                else:
+                    ls(m)
                 sys.exit(0)
 
             if not os.path.isdir(args.output):
