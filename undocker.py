@@ -31,15 +31,24 @@ def parse_args():
     p.add_argument('--layers',
                    action='store_true',
                    help='List layers in an image')
+    p.add_argument('--config', '-c',
+                   action='store_true',
+                   help='Dump config contained in archive')
     p.add_argument('--list', '--ls',
                    action='store_true',
                    help='List images/tags contained in archive')
+    p.add_argument('--manifest', '-m',
+                   action='store_true',
+                   help='Dump manifest contained in archive')
     p.add_argument('--layer', '-l',
                    action='append',
                    help='Extract only the specified layer')
     p.add_argument('--no-whiteouts', '-W',
                    action='store_true',
                    help='Do not process whiteout (.wh.*) files')
+    p.add_argument('--pretty', '-p',
+                   action='store_true',
+                   help='Pretty print the json dump output')
 
     g = p.add_argument_group('Logging options')
     g.add_argument('--verbose', '-v',
@@ -95,6 +104,10 @@ def main():
     args = parse_args()
     logging.basicConfig(level=args.loglevel)
 
+    pretty = {}
+    if args.pretty:
+        pretty = {"indent": 4}
+
     with tempfile.NamedTemporaryFile() as fd, (
             open(args.image, 'rb') if args.image
             else io.open(sys.stdin.fileno(), 'rb')) as image:
@@ -124,6 +137,34 @@ def main():
                 LOG.error('No image name specified and multiple '
                           'images contained in archive')
                 sys.exit(1)
+            if args.manifest or args.config:
+                try:
+                    mj = img.extractfile('manifest.json')
+                    manifest = json.loads(mj.read().decode('utf-8'))
+                except KeyError:
+                    LOG.error('failed to find manifest.json')
+                    sys.exit(1)
+                if args.manifest:
+                    print(json.dumps(manifest, **pretty))
+                    sys.exit(0)
+                configs = []
+                repotag = None
+                if args.image:
+                    name, tag = parse_image_spec(args.image)
+                    repotag = "%s:%s" % (name, tag)
+                for image in manifest:
+                    if repotag and repotag not in image['RepoTags']:
+                        continue
+                    try:
+                        cj = img.extractfile(image['Config'])
+                        config = json.loads(cj.read().decode('utf-8'))
+                    except KeyError:
+                        LOG.error('failed to read config json')
+                        sys.exit(1)
+                    configs.append(config)
+                if args.config:
+                    print(json.dumps(configs, **pretty))
+                    sys.exit(0)
 
             try:
                 top = repos[name][tag]
