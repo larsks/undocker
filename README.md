@@ -17,8 +17,11 @@ Unpacks a Docker image.
       --verbose, -v
       --debug, -d
       --list, --ls          List layers in an image
+      --manifest, -m        Dump manifest contained in archive
       --layer LAYER, -l LAYER
                             Extract only the specified layer
+      --config, -c          Dump config contained in archive
+      --pretty, -p          Pretty print the json dump output
 
 ## Examples
 
